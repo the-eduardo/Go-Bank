@@ -1,4 +1,4 @@
-module github.com/techschool/simplebank
+module github.com/the-eduardo/Go-Bank
 
 go 1.18
 

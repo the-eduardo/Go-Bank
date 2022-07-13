@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-/////////////////////////////////////////////////////////
+//////// Create Transfer Request using existing TransferTxParams
 type createTransferRequest struct {
 	FromAccountID int64 `json:"from_account_id" binding:"required,min=1"`
 	ToAccountID   int64 `json:"to_account_id" binding:"required,min=1"`
@@ -33,7 +33,7 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, transfer)
 }
 
-/////////////////////////////////////////////////////////
+////////////////// Get transfer request using TransferID
 
 type getTransferRequest struct {
 	TransferID int64 `uri:"id" binding:"required,min=1"`
@@ -57,7 +57,8 @@ func (server *Server) getTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, transfer)
 }
 
-/////////////////////////////////////////////////////////
+////////////// List existing transfers
+// TODO: implement "list all transfers"
 
 type listTransferRequest struct {
 	PageID        int32 `form:"page_id" binding:"required,min=1"`

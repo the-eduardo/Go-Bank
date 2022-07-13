@@ -35,7 +35,7 @@ func (server *Server) createEntry(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, entry)
 }
 
-////////////////// Get Entry request using EntryID
+////////////////// Get Entry request using TransferID
 
 type getEntry struct {
 	EntryID int64 `uri:"id" binding:"required,min=1"`

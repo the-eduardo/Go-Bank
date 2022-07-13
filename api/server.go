@@ -5,7 +5,7 @@ import (
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 )
 
-// Serves HTTP requests
+// Server serves HTTP requests
 type Server struct {
 	store  *db.Store
 	router *gin.Engine
@@ -18,6 +18,10 @@ func NewServer(store *db.Store) *Server {
 	router.POST("/accounts", server.createAccount)
 	router.GET("/accounts/:id", server.getAccount)
 	router.GET("/accounts", server.listAccount)
+
+	router.POST("/transfer", server.createTransfer)
+	router.GET("/transfer/:id", server.getTransfer)
+	router.GET("/transfer", server.listTransfer)
 
 	server.router = router
 	return server

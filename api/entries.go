@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//////// Create Entry Request using existing
+// ////// Create Entry Request using existing
 type createEntryRequest struct {
 	AccountID int64 `json:"account_id" binding:"required,min=1"`
 	Amount    int64 `json:"amount" binding:"required,gt=1"`
@@ -55,7 +55,7 @@ func (server *Server) getEntry(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, entry)
 }
 
-////////////// List existing entries for an account
+////////////// List existing entries for an accountID
 
 type listEntryRequest struct {
 	AccountID int64 `uri:"account_id" binding:"required,min=1"`

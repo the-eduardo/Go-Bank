@@ -92,15 +92,15 @@ func TestGetAccountAPI(t *testing.T) {
 func TestCreateAccountAPI(t *testing.T) {
 	account := randomAccount()
 	testCases := []struct {
-		name       string
-		body       gin.H
-		buildStubs func(store *mockdb.MockStore)
-		//checkResponse func(recorder *httptest.ResponseRecorder)
+		name          string
+		body          gin.H
+		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "OK",
 			body: gin.H{
+				"owner":    account.Owner,
 				"currency": account.Currency,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -115,7 +115,6 @@ func TestCreateAccountAPI(t *testing.T) {
 					Times(1).
 					Return(account, nil)
 			},
-			//checkResponse: func(recorder *httptest.ResponseRecorder) {
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchAccount(t, recorder.Body, account)
@@ -124,6 +123,7 @@ func TestCreateAccountAPI(t *testing.T) {
 		{
 			name: "InvalidCurrency",
 			body: gin.H{
+				"owner":    account.Owner,
 				"currency": "invalid",
 			},
 			buildStubs: func(store *mockdb.MockStore) {
@@ -131,7 +131,6 @@ func TestCreateAccountAPI(t *testing.T) {
 					CreateAccount(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
-			//checkResponse: func(recorder *httptest.ResponseRecorder) {
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
@@ -139,12 +138,12 @@ func TestCreateAccountAPI(t *testing.T) {
 		{
 			name: "InternalError",
 			body: gin.H{
+				"owner":    account.Owner,
 				"currency": account.Currency,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().CreateAccount(gomock.Any(), gomock.Any()).Times(1).Return(db.Account{}, sql.ErrConnDone)
 			},
-			//checkResponse: func(recorder *httptest.ResponseRecorder) {
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},

@@ -228,7 +228,7 @@ func TestListEntries(t *testing.T) {
 		{
 			name: "OK",
 			query: Query{
-				AccountID: entries[i].AccountID,
+				AccountID: entries[0].AccountID,
 				pageID:    1,
 				pageSize:  5,
 			},

@@ -275,8 +275,8 @@ func TestListAccountsAPI(t *testing.T) {
 			server := NewServer(store)
 			recorder := httptest.NewRecorder()
 
-			url := "/accounts"
-			request, err := http.NewRequest(http.MethodGet, url, nil)
+			myUrl := "/accounts"
+			request, err := http.NewRequest(http.MethodGet, myUrl, nil)
 			require.NoError(t, err)
 
 			// Add query parameters to request URL

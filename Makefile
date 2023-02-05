@@ -1,13 +1,17 @@
 postgres:
-	docker run --name postgres1 -p 54321:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres
+	docker run --name postgres1 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres
 createdb:
 	docker exec -it postgres1 createdb --username=root --owner=root simple_bank
 dropdb:
 	docker exec -it postgres1 dropdb simple_bank
 migrateup:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
+migrateup1:
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up 1
 migratedown:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down
+migratedown1:
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 sqlc:
 	sqlc generate
 sqlcdocker:
@@ -19,5 +23,5 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/the-eduardo/Go-Bank/db/sqlc Store
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc sqlcdocker test server mock
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc sqlcdocker test server mock
 

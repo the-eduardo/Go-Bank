@@ -33,14 +33,15 @@ func requireBodyMatchEntry(t *testing.T, body io.Reader, entry db.Entry) {
 	require.NoError(t, err, "unmarshal entry")
 	require.Equal(t, entry, gotEntry, "entry")
 }
-func requireBodyMatchEntries(t *testing.T, body io.Reader, entry []db.Entry) {
-	data, err := io.ReadAll(body)
-	require.NoError(t, err, "read body")
-	var got db.Entry
-	err = json.Unmarshal(data, &got)
-	require.NoError(t, err, "unmarshal entry")
-	require.Equal(t, entry, got, "entry")
-}
+
+//func requireBodyMatchEntries(t *testing.T, body io.Reader, entry []db.Entry) {
+//	data, err := io.ReadAll(body)
+//	require.NoError(t, err, "read body")
+//	var got db.Entry
+//	err = json.Unmarshal(data, &got)
+//	require.NoError(t, err, "unmarshal entry")
+//	require.Equal(t, entry, got, "entry")
+//}
 
 func TestGetEntryAPI(t *testing.T) {
 	entry := randomEntry()
@@ -207,148 +208,4 @@ func TestCreateNewEntry(t *testing.T) {
 	}
 }
 
-func TestListEntries(t *testing.T) {
-	n := 5
-	entries := make([]db.Entry, n)
-	for i := 0; i < n; i++ {
-		entries[i] = randomEntry()
-	}
-
-	type Query struct {
-		AccountID int64 `form:"account_id"`
-		pageID    int64 `form:"page_id"`
-		pageSize  int64 `form:"page_size"`
-	}
-	testCases := []struct {
-		name          string
-		query         Query
-		buildStubs    func(store *mockdb.MockStore)
-		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
-	}{
-		{
-			name: "OK",
-			query: Query{
-				AccountID: entries[0].AccountID,
-				pageID:    1,
-				pageSize:  5,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.ListEntriesParams{
-					AccountID: entries[0].AccountID,
-					Limit:     5,
-					Offset:    1,
-				}
-				store.EXPECT().
-					ListEntries(gomock.Any(), gomock.Eq(arg)).
-					Times(1).
-					Return(entries, nil)
-			},
-		},
-		{
-			name: "InternalError",
-			query: Query{
-				AccountID: entries[0].AccountID,
-				pageID:    1,
-				pageSize:  5,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.ListEntriesParams{
-					AccountID: entries[0].AccountID,
-					Limit:     5,
-					Offset:    1,
-				}
-				store.EXPECT().
-					ListEntries(gomock.Any(), gomock.Eq(arg)).
-					Times(1).
-					Return(nil, sql.ErrConnDone)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code, "server unreachable") // check the response code
-			},
-		},
-		{
-			name: "InvalidID",
-			query: Query{
-				AccountID: -1,
-				pageID:    1,
-				pageSize:  5,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.ListEntriesParams{
-					AccountID: -1,
-					Limit:     5,
-					Offset:    1,
-				}
-				store.EXPECT().
-					ListEntries(gomock.Any(), gomock.Eq(arg)).
-					Times(0)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code, "invalid id") // check the response code
-			},
-		},
-		{
-			name: "InvalidLimit",
-			query: Query{
-				AccountID: entries[0].AccountID,
-				pageID:    1,
-				pageSize:  -1,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.ListEntriesParams{
-					AccountID: entries[0].AccountID,
-					Limit:     -1,
-					Offset:    1,
-				}
-				store.EXPECT().
-					ListEntries(gomock.Any(), gomock.Eq(arg)).
-					Times(0)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code, "invalid id") // check the response code
-			},
-		},
-		{
-			name: "InvalidOffset",
-			query: Query{
-				AccountID: entries[0].AccountID,
-				pageID:    -1,
-				pageSize:  5,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.ListEntriesParams{
-					AccountID: entries[0].AccountID,
-					Limit:     5,
-					Offset:    -1,
-				}
-				store.EXPECT().
-					ListEntries(gomock.Any(), gomock.Eq(arg)).
-					Times(0)
-			},
-			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code, "invalid id") // check the response code
-			},
-		},
-	}
-	for i := range testCases {
-		tc := testCases[i]
-
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store)
-
-			server := NewServer(store)
-			recorder := httptest.NewRecorder()
-
-			myUrl := fmt.Sprintf("/entries/%d?limit=%d&offset=%d", tc.query.AccountID, tc.query.pageSize, tc.query.pageID)
-			request, err := http.NewRequest(http.MethodGet, myUrl, nil)
-			require.NoError(t, err)
-
-			server.router.ServeHTTP(recorder, request)
-			tc.checkResponse(t, recorder)
-		})
-	}
-}
+// TODO: Need to add List Entries

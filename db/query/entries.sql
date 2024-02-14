@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 -- name: NewEntry :one
 INSERT INTO entries (
 account_id,

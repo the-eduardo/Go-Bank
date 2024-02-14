@@ -42,7 +42,7 @@ jobs:
         run: |
           version=$(curl --silent "https://api.github.com/repos/golang-migrate/migrate/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           curl -L https://github.com/golang-migrate/migrate/releases/download/$version/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv migrate.linux-amd64 /usr/local/bin/migrate
+          sudo mv migrate /usr/local/bin/migrate
           migrate -version
 
       - name: Run Migration

@@ -21,6 +21,7 @@ type AddAccountBalanceParams struct {
 	ID     int64 `json:"id"`
 }
 
+// Use AddAccountBalance to add the amount of money as a new entry.
 func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (Account, error) {
 	row := q.db.QueryRow(ctx, addAccountBalance, arg.Amount, arg.ID)
 	var i Account
@@ -35,7 +36,6 @@ func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalancePa
 }
 
 const createAccount = `-- name: CreateAccount :one
-
 INSERT INTO accounts (
    owner,
    balance,
@@ -51,7 +51,6 @@ type CreateAccountParams struct {
 	Currency string `json:"currency"`
 }
 
-// noinspection SqlResolveForFile
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
 	row := q.db.QueryRow(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
 	var i Account

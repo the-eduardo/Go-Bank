@@ -14,6 +14,7 @@ SELECT id, account_id, amount, created_at FROM entries
 WHERE id = $1
 `
 
+// GetEntry returns the entry with an entry ID
 func (q *Queries) GetEntry(ctx context.Context, id int64) (Entry, error) {
 	row := q.db.QueryRow(ctx, getEntry, id)
 	var i Entry
@@ -40,6 +41,7 @@ type ListEntriesParams struct {
 	Offset    int64 `json:"offset"`
 }
 
+// ListEntries returns a list of entries for the given account ID
 func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error) {
 	rows, err := q.db.Query(ctx, listEntries, arg.AccountID, arg.Limit, arg.Offset)
 	if err != nil {
@@ -66,7 +68,6 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 }
 
 const newEntry = `-- name: NewEntry :one
-
 INSERT INTO entries (
 account_id,
 amount
@@ -80,7 +81,7 @@ type NewEntryParams struct {
 	Amount    int64 `json:"amount"`
 }
 
-// noinspection SqlResolveForFile
+// NewEntry Does not add the amount of money. Use AddAccountBalance instead
 func (q *Queries) NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error) {
 	row := q.db.QueryRow(ctx, newEntry, arg.AccountID, arg.Amount)
 	var i Entry

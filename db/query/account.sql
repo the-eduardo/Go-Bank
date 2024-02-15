@@ -1,4 +1,3 @@
--- noinspection SqlResolveForFile
 
 -- name: CreateAccount :one
 INSERT INTO accounts (
@@ -30,6 +29,7 @@ SET balance = $2
 WHERE id = $1
 RETURNING *;
 
+-- Use AddAccountBalance to add the amount of money as a new entry.
 -- name: AddAccountBalance :one
 UPDATE accounts
 SET balance = balance + sqlc.arg(amount)

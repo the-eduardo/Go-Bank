@@ -10,6 +10,7 @@ import (
 )
 
 const createNewTransfer = `-- name: CreateNewTransfer :one
+
 INSERT INTO transfers (
     from_account_id,
     to_account_id,
@@ -25,6 +26,7 @@ type CreateNewTransferParams struct {
 	Amount        int64 `json:"amount"`
 }
 
+// noinspection SqlResolveForFile
 func (q *Queries) CreateNewTransfer(ctx context.Context, arg CreateNewTransferParams) (Transfer, error) {
 	row := q.db.QueryRow(ctx, createNewTransfer, arg.FromAccountID, arg.ToAccountID, arg.Amount)
 	var i Transfer
@@ -76,7 +78,7 @@ func (q *Queries) ListTransfersByAccountId(ctx context.Context, arg ListTransfer
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Transfer
+	items := []Transfer{}
 	for rows.Next() {
 		var i Transfer
 		if err := rows.Scan(

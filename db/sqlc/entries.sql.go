@@ -46,7 +46,7 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Entry
+	items := []Entry{}
 	for rows.Next() {
 		var i Entry
 		if err := rows.Scan(
@@ -66,6 +66,7 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 }
 
 const newEntry = `-- name: NewEntry :one
+
 INSERT INTO entries (
 account_id,
 amount
@@ -79,6 +80,7 @@ type NewEntryParams struct {
 	Amount    int64 `json:"amount"`
 }
 
+// noinspection SqlResolveForFile
 func (q *Queries) NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error) {
 	row := q.db.QueryRow(ctx, newEntry, arg.AccountID, arg.Amount)
 	var i Entry

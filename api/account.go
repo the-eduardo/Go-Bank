@@ -1,10 +1,10 @@
 package api
 
 import (
-	db "GoBank/db/sqlc"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"net/http"
 )
 
@@ -71,8 +71,9 @@ type GetAccountRequest struct {
 
 func (server *Server) getAccount(ctx *gin.Context) {
 	var req GetAccountRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 	account, err := server.store.GetAccount(ctx, req.ID)

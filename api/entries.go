@@ -1,10 +1,10 @@
 package api
 
 import (
-	db "GoBank/db/sqlc"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"net/http"
 )
 

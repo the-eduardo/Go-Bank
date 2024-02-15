@@ -1,11 +1,11 @@
 package main
 
 import (
-	"GoBank/api"
-	db "GoBank/db/sqlc"
-	"GoBank/util"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-eduardo/Go-Bank/api"
+	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/util"
 	"log"
 )
 

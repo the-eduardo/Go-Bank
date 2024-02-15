@@ -1,0 +1,9 @@
+with-expecter: true
+outpkg: mockdb
+filename: "{{.InterfaceName | firstLower }}.go"
+dir: "./db/mock"
+packages:
+  github.com/the-eduardo/Go-Bank/db/sqlc:
+    interfaces:
+      Store:
+        InterfaceDir: "db/sqlc"

@@ -1,9 +1,9 @@
 package db
 
 import (
-	"GoBank/util"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/the-eduardo/Go-Bank/util"
 	"log"
 	"os"
 	"testing"

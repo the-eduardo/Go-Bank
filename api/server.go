@@ -1,18 +1,18 @@
 package api
 
 import (
-	db "GoBank/db/sqlc"
 	"github.com/gin-gonic/gin"
+	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 )
 
 // Server provides the HTTP rest API
 type Server struct {
-	store  *db.Store
+	store  db.Store
 	router *gin.Engine
 }
 
 // NewServer creates a new HTTP server and set up routing
-func NewServer(store *db.Store) *Server {
+func NewServer(store db.Store) *Server {
 	server := &Server{store: store}
 	router := gin.Default()
 

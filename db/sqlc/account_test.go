@@ -1,10 +1,10 @@
 package db
 
 import (
-	"GoBank/util"
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
+	"github.com/the-eduardo/Go-Bank/util"
 	"testing"
 	"time"
 )

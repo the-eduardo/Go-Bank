@@ -23,6 +23,9 @@ func NewServer(store db.Store) *Server {
 
 	}
 
+	// Add routes for users
+	router.POST("/users", server.createUser)
+
 	// Add routes for accounts
 	router.POST("/accounts", server.createAccount)
 	router.DELETE("/accounts/:id", server.deleteAccountRequest)

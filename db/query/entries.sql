@@ -1,3 +1,4 @@
+-- noinspection SqlResolveForFile
 -- NewEntry Does not add the amount of money. Use AddAccountBalance instead
 -- name: NewEntry :one
 INSERT INTO entries (

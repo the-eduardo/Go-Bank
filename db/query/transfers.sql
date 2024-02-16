@@ -1,4 +1,4 @@
-
+-- noinspection SqlResolveForFile
 -- name: CreateNewTransfer :one
 INSERT INTO transfers (
     from_account_id,

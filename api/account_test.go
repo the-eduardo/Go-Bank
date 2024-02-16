@@ -12,6 +12,7 @@ import (
 	"github.com/the-eduardo/Go-Bank/util"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -83,6 +84,241 @@ func TestGetAccountAPI(t *testing.T) {
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			assert.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestCreateAccountAPI(t *testing.T) {
+	account := randomAccount()
+
+	testCases := []struct {
+		name          string
+		Owner         string
+		Currency      string
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:     "AccountCreated",
+			Owner:    account.Owner,
+			Currency: account.Currency,
+
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().CreateAccount(mock.Anything, db.CreateAccountParams{Owner: account.Owner, Currency: account.Currency}).Times(1).Return(account, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				// check the response
+				assert.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchAccount(t, recorder.Body.Bytes(), account)
+			},
+		},
+		{
+			name:     "InternalError",
+			Owner:    account.Owner,
+			Currency: account.Currency,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().CreateAccount(mock.Anything, db.CreateAccountParams{Owner: account.Owner, Currency: account.Currency}).
+					Times(1).
+					Return(db.Account{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:     "BadRequest",
+			Owner:    "",
+			Currency: "",
+			buildStubs: func(store *mockdb.MockStore) {
+				// No call to GetAccount is expected because the request should fail validation.
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:     "BadCurrency",
+			Owner:    account.Owner,
+			Currency: "",
+			buildStubs: func(store *mockdb.MockStore) {
+				// No call to GetAccount is expected because the request should fail validation.
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore := mockdb.NewMockStore(t)
+			tc.buildStubs(mockStore)
+
+			server := NewServer(mockStore)
+			recorder := httptest.NewRecorder()
+
+			url := ("/accounts")
+			body := strings.NewReader(fmt.Sprintf(`{"owner": "%s", "currency": "%s"}`, tc.Owner, tc.Currency))
+			request, err := http.NewRequest(http.MethodPost, url, body)
+			assert.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestDeleteAccountAPI(t *testing.T) {
+	account := randomAccount()
+
+	testCases := []struct {
+		name          string
+		accountID     int64
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:      "AccountDeleted",
+			accountID: account.ID,
+
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetAccount(mock.Anything, account.ID).
+					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
+				store.EXPECT().DeleteAccount(mock.Anything, account.ID).
+					Times(1).Return(nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				// check the response
+				assert.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchAccount(t, recorder.Body.Bytes(), db.Account{})
+			},
+		},
+		{
+			name:      "InternalError",
+			accountID: account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetAccount(mock.Anything, account.ID).
+					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
+				store.EXPECT().DeleteAccount(mock.Anything, account.ID).
+					Times(1).
+					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:      "NotFound",
+			accountID: account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetAccount(mock.Anything, account.ID).
+					Times(1).
+					Return(db.Account{}, pgx.ErrNoRows)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:      "BadRequest",
+			accountID: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				// No call to GetAccount is expected because the request should fail validation.
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore := mockdb.NewMockStore(t)
+			tc.buildStubs(mockStore)
+
+			server := NewServer(mockStore)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/accounts/%d", tc.accountID)
+			request, err := http.NewRequest(http.MethodDelete, url, nil)
+			assert.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
+
+func TestListAccountsAPI(t *testing.T) {
+	account := randomAccount()
+
+	testCases := []struct {
+		name          string
+		PageID        int64
+		PageSize      int64
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:     "OK",
+			PageID:   1,
+			PageSize: 5,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListAccounts(mock.Anything, db.ListAccountsParams{Limit: 5, Offset: 0}).
+					Times(1).
+					Return([]db.Account{account}, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				// check the response
+				assert.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name:     "InternalError",
+			PageID:   1,
+			PageSize: 5,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListAccounts(mock.Anything, db.ListAccountsParams{Limit: 5, Offset: 0}).
+					Times(1).
+					Return([]db.Account{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:     "BadRequest",
+			PageID:   0,
+			PageSize: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				// No call to GetAccount is expected because the request should fail validation.
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore := mockdb.NewMockStore(t)
+			tc.buildStubs(mockStore)
+
+			server := NewServer(mockStore)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/accounts/?page_id=%d&page_size=%d", tc.PageID, tc.PageSize)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			assert.NoError(t, err)
 

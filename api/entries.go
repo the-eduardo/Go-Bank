@@ -29,7 +29,17 @@ func (server *Server) newEntry(ctx *gin.Context) {
 		ID:     req.AccountID,
 		Amount: req.Amount,
 	}
-	entry, err := server.store.AddAccountBalance(ctx, arg)
+	_, err := server.store.AddAccountBalance(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	entryArg := db.NewEntryParams{
+		AccountID: req.AccountID,
+		Amount:    req.Amount,
+	}
+	entry, err := server.store.NewEntry(ctx, entryArg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -60,7 +70,7 @@ func (server *Server) getEntry(ctx *gin.Context) {
 }
 
 type listEntriesRequest struct {
-	AccountID int64 `form:"from_account_id" binding:"required,min=1"`
+	AccountID int64 `form:"account_id" binding:"required,min=1"`
 	PageID    int64 `form:"page_id" binding:"required,min=1"`
 	PageSize  int64 `form:"page_size" binding:"required,min=5,max=10"`
 }

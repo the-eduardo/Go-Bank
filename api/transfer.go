@@ -9,9 +9,10 @@ import (
 )
 
 type CreateTransferRequest struct {
-	FromAccountID int64 `json:"from_account_id" binding:"required,min=1"`
-	ToAccountID   int64 `json:"to_account_id" binding:"required,min=1"`
-	Amount        int64 `json:"amount" binding:"required,min=1"`
+	FromAccountID int64  `json:"from_account_id" binding:"required,min=1"`
+	ToAccountID   int64  `json:"to_account_id" binding:"required,min=1"`
+	Amount        int64  `json:"amount" binding:"required,gt=0"`
+	Currency      string `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createTransfer(ctx *gin.Context) {
@@ -20,13 +21,14 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.FromAccountID) {
-		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("from account not found")))
+
+	// Check if the accounts exist and if the currency matches
+	if !accountValidator(server, ctx, req.FromAccountID, req.Currency, true) {
+		//ctx.JSON(http.StatusNotFound, errorResponse(errors.New("from account not found")))
 		return
 	}
-	if !accountValidator(server, ctx, req.ToAccountID) {
-		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("to account not found")))
+	if !accountValidator(server, ctx, req.ToAccountID, req.Currency, true) {
+		//ctx.JSON(http.StatusNotFound, errorResponse(errors.New("to account not found")))
 		return
 	}
 
@@ -79,7 +81,7 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 	}
 
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.FromAccountID) {
+	if !accountValidator(server, ctx, req.FromAccountID, "", false) {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
 		return
 	}

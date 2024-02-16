@@ -20,7 +20,7 @@ func (server *Server) newEntry(ctx *gin.Context) {
 		return
 	}
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.AccountID) {
+	if !accountValidator(server, ctx, req.AccountID, "", false) {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("from account not found")))
 		return
 	}
@@ -73,7 +73,7 @@ func (server *Server) listEntries(ctx *gin.Context) {
 	}
 
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.AccountID) {
+	if !accountValidator(server, ctx, req.AccountID, "", false) {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
 		return
 	}

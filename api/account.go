@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
@@ -9,17 +10,29 @@ import (
 )
 
 // accountValidator checks if the account exists
-func accountValidator(server *Server, ctx *gin.Context, id int64) bool {
-	_, err := server.store.GetAccount(ctx, id)
+func accountValidator(server *Server, ctx *gin.Context, id int64, currency string, verifyCurrency bool) bool {
+	account, err := server.store.GetAccount(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return false
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return false
+	}
+	if verifyCurrency {
+		if account.Currency != currency {
+			err = fmt.Errorf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency)
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return false
+		}
 	}
 	return true
 }
 
 type CreateAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR BRL"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -52,7 +65,7 @@ func (server *Server) deleteAccountRequest(ctx *gin.Context) {
 		return
 	}
 	// Check if the account exists
-	if !accountValidator(server, ctx, req.ID) {
+	if !accountValidator(server, ctx, req.ID, "", false) {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
 		return
 	}

@@ -60,18 +60,16 @@ func TestGetAccountAPI(t *testing.T) {
 				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
-		//{ // TODO: Fix this test someday
-		//	name:      "InvalidID",
-		//	accountID: 0,
-		//	buildStubs: func(store *mockdb.MockStore) {
-		//		store.EXPECT().
-		//			GetAccount(mock.Anything, mock.Anything).
-		//			Times(0)
-		//	},
-		//	checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-		//		assert.Equal(t, http.StatusBadRequest, recorder.Code)
-		//	},
-		//},
+		{
+			name:      "InvalidID",
+			accountID: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				// No call to GetAccount is expected because the request should fail validation.
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
 	}
 
 	for i := range testCases {

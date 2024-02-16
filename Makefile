@@ -10,7 +10,7 @@ dropdb:
 migrateup:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/gobank_db?sslmode=disable" -verbose up
 
-migrateup:
+migrateup1:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/gobank_db?sslmode=disable" -verbose up 1
 
 migratedown:
@@ -31,5 +31,5 @@ server:
 mock:
 	mockery --config=.mockery.yaml
 
-.PHONY: postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
 

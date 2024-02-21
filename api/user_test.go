@@ -167,7 +167,7 @@ func TestCreateUserAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			// Marshal body data to JSON

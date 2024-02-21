@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	mockdb "github.com/the-eduardo/Go-Bank/db/mock"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"github.com/the-eduardo/Go-Bank/util"
@@ -33,7 +33,7 @@ func TestGetAccountAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
-				assert.Equal(t, http.StatusOK, recorder.Code)
+				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchAccount(t, recorder.Body.Bytes(), account)
 			},
 		},
@@ -46,7 +46,7 @@ func TestGetAccountAPI(t *testing.T) {
 					Return(db.Account{}, pgx.ErrNoRows)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusNotFound, recorder.Code)
+				require.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func TestGetAccountAPI(t *testing.T) {
 					Return(db.Account{}, sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func TestGetAccountAPI(t *testing.T) {
 				// No call to GetAccount is expected because the request should fail validation.
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 	}
@@ -80,12 +80,12 @@ func TestGetAccountAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -113,7 +113,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
-				assert.Equal(t, http.StatusOK, recorder.Code)
+				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchAccount(t, recorder.Body.Bytes(), account)
 			},
 		},
@@ -127,7 +127,7 @@ func TestCreateAccountAPI(t *testing.T) {
 					Return(db.Account{}, sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
 		{
@@ -138,7 +138,7 @@ func TestCreateAccountAPI(t *testing.T) {
 				// No call to GetAccount is expected because the request should fail validation.
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 		{
@@ -149,7 +149,7 @@ func TestCreateAccountAPI(t *testing.T) {
 				// No call to GetAccount is expected because the request should fail validation.
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 	}
@@ -161,13 +161,13 @@ func TestCreateAccountAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := ("/accounts")
 			body := strings.NewReader(fmt.Sprintf(`{"owner": "%s", "currency": "%s"}`, tc.Owner, tc.Currency))
 			request, err := http.NewRequest(http.MethodPost, url, body)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -196,7 +196,7 @@ func TestDeleteAccountAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
-				assert.Equal(t, http.StatusOK, recorder.Code)
+				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchAccount(t, recorder.Body.Bytes(), db.Account{})
 			},
 		},
@@ -211,7 +211,7 @@ func TestDeleteAccountAPI(t *testing.T) {
 					Return(sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
 		{
@@ -223,7 +223,7 @@ func TestDeleteAccountAPI(t *testing.T) {
 					Return(db.Account{}, pgx.ErrNoRows)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusNotFound, recorder.Code)
+				require.Equal(t, http.StatusNotFound, recorder.Code)
 			},
 		},
 		{
@@ -233,7 +233,7 @@ func TestDeleteAccountAPI(t *testing.T) {
 				// No call to GetAccount is expected because the request should fail validation.
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 	}
@@ -245,12 +245,12 @@ func TestDeleteAccountAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
 			request, err := http.NewRequest(http.MethodDelete, url, nil)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -279,7 +279,7 @@ func TestListAccountsAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
-				assert.Equal(t, http.StatusOK, recorder.Code)
+				require.Equal(t, http.StatusOK, recorder.Code)
 			},
 		},
 		{
@@ -292,7 +292,7 @@ func TestListAccountsAPI(t *testing.T) {
 					Return([]db.Account{}, sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
 		{
@@ -303,7 +303,7 @@ func TestListAccountsAPI(t *testing.T) {
 				// No call to GetAccount is expected because the request should fail validation.
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
 		},
 	}
@@ -315,12 +315,12 @@ func TestListAccountsAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/?page_id=%d&page_size=%d", tc.PageID, tc.PageSize)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -331,12 +331,12 @@ func TestListAccountsAPI(t *testing.T) {
 func requireBodyMatchAccount(t *testing.T, body []byte, account db.Account) {
 	var responseAccount db.Account
 	err := json.Unmarshal(body, &responseAccount)
-	assert.NoError(t, err)
-	assert.Equal(t, account, responseAccount)
-	assert.Equal(t, account.ID, responseAccount.ID)
-	assert.Equal(t, account.Owner, responseAccount.Owner)
-	assert.Equal(t, account.Balance, responseAccount.Balance)
-	assert.Equal(t, account.Currency, responseAccount.Currency)
+	require.NoError(t, err)
+	require.Equal(t, account, responseAccount)
+	require.Equal(t, account.ID, responseAccount.ID)
+	require.Equal(t, account.Owner, responseAccount.Owner)
+	require.Equal(t, account.Balance, responseAccount.Balance)
+	require.Equal(t, account.Currency, responseAccount.Currency)
 }
 
 func randomAccount() db.Account {

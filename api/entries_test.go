@@ -80,7 +80,7 @@ func TestGetEntryAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/entries/%d", tc.entryID)
@@ -161,7 +161,7 @@ func TestCreateNewEntryAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := "/entries"
@@ -254,7 +254,7 @@ func TestListAccountEntriesAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/entries/?account_id=%d&page_id=%d&page_size=%d", tc.AccountID, tc.PageID, tc.PageSize)

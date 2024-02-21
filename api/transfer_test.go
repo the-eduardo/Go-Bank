@@ -79,7 +79,7 @@ func TestGetTransferAPI(t *testing.T) {
 			mockStore := mockdb.NewMockStore(t)
 			tc.buildStubs(mockStore)
 
-			server := NewServer(mockStore)
+			server := newTestServer(t, mockStore)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/transfers/%d", tc.transferID)

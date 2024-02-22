@@ -29,12 +29,18 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 		store:      store,
 		tokenMaker: tokenMaker,
 	}
-	router := gin.Default()
+	server.setupRouter()
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("currency", validCurrency)
 
 	}
+
+	return server, nil
+
+}
+func (server *Server) setupRouter() {
+	router := gin.Default()
 
 	// Add routes for users
 	router.POST("/users", server.createUser)
@@ -56,8 +62,6 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	router.GET("/entries/", server.listEntries)
 
 	server.router = router
-	return server, nil
-
 }
 
 // Start runs the HTTP server on a specific address

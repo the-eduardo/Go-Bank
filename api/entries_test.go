@@ -6,31 +6,42 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	mockdb "github.com/the-eduardo/Go-Bank/db/mock"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/token"
 	"github.com/the-eduardo/Go-Bank/util"
 	"go.uber.org/mock/gomock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestGetEntryAPI(t *testing.T) {
-	entry := randomEntry()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
+	entry := randomEntry(account.ID)
 
 	testCases := []struct {
 		name          string
 		entryID       int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:    "OK",
 			entryID: entry.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetEntry(mock.Anything, entry.ID).Times(1).Return(entry, nil)
+				account := db.Account{ID: entry.AccountID, Owner: user.Username}
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
+					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
+				store.EXPECT().GetEntry(gomock.Any(), entry.ID).Times(1).Return(entry, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
@@ -41,8 +52,11 @@ func TestGetEntryAPI(t *testing.T) {
 		{
 			name:    "NotFound",
 			entryID: entry.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetEntry(mock.Anything, entry.ID).
+				store.EXPECT().GetEntry(gomock.Any(), entry.ID).
 					Times(1).
 					Return(db.Entry{}, pgx.ErrNoRows)
 			},
@@ -53,8 +67,11 @@ func TestGetEntryAPI(t *testing.T) {
 		{
 			name:    "InternalError",
 			entryID: entry.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetEntry(mock.Anything, entry.ID).
+				store.EXPECT().GetEntry(gomock.Any(), entry.ID).
 					Times(1).
 					Return(db.Entry{}, sql.ErrConnDone)
 			},
@@ -65,6 +82,9 @@ func TestGetEntryAPI(t *testing.T) {
 		{
 			name:    "InvalidID",
 			entryID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				// No call is expected because the request should fail validation.
 			},
@@ -91,6 +111,8 @@ func TestGetEntryAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			assert.NoError(t, err)
 
+			tc.setupAuth(t, request, server.tokenMaker)
+
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
 		})
@@ -98,12 +120,15 @@ func TestGetEntryAPI(t *testing.T) {
 }
 
 func TestCreateNewEntryAPI(t *testing.T) {
-	entry := randomEntry()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
+	entry := randomEntry(account.ID)
 
 	testCases := []struct {
 		name          string
 		accountID     int64
 		Amount        int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -111,17 +136,21 @@ func TestCreateNewEntryAPI(t *testing.T) {
 			name:      "NewEntryCreated",
 			accountID: entry.AccountID,
 			Amount:    entry.Amount,
-
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				account := db.Account{ID: entry.AccountID} // Create a mock account
-				store.EXPECT().GetAccount(mock.Anything, entry.AccountID).
+				account := db.Account{ID: entry.AccountID, Owner: user.Username}
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
 					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
-				store.EXPECT().AddAccountBalance(mock.Anything, db.AddAccountBalanceParams{ID: entry.AccountID, Amount: entry.Amount}).
-					Times(1).
-					Return(account, nil)
-				store.EXPECT().NewEntry(mock.Anything, db.NewEntryParams{AccountID: entry.AccountID, Amount: entry.Amount}).
-					Times(1).
-					Return(entry, nil)
+				store.EXPECT().AddAccountBalance(gomock.Any(), gomock.Eq(db.AddAccountBalanceParams{
+					ID:     entry.AccountID,
+					Amount: entry.Amount, // I'm not sure if I should do that
+				})).Times(1).Return(db.Account{}, nil)
+				store.EXPECT().NewEntry(gomock.Any(), gomock.Eq(db.NewEntryParams{
+					AccountID: account.ID,
+					Amount:    entry.Amount, // I'm not sure if I should do that
+				})).Times(1).Return(entry, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
@@ -133,13 +162,17 @@ func TestCreateNewEntryAPI(t *testing.T) {
 			name:      "InternalError",
 			accountID: entry.AccountID,
 			Amount:    entry.Amount,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(mock.Anything, entry.AccountID).
-					Times(1).Return(db.Account{}, nil) // Mock GetAccount to return the account and nil error to pass validation
-				store.EXPECT().AddAccountBalance(mock.Anything, db.AddAccountBalanceParams{ID: entry.AccountID, Amount: entry.Amount}).
-					Times(1).
-					Return(db.Account{}, sql.ErrConnDone)
-
+				account := db.Account{ID: entry.AccountID, Owner: user.Username}
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
+					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
+				store.EXPECT().AddAccountBalance(gomock.Any(), gomock.Eq(db.AddAccountBalanceParams{
+					ID:     entry.AccountID,
+					Amount: entry.Amount,
+				})).Times(1).Return(db.Account{}, sql.ErrConnDone)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -149,6 +182,9 @@ func TestCreateNewEntryAPI(t *testing.T) {
 			name:      "BadRequest",
 			accountID: 0,
 			Amount:    0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				// No call is expected because the request should fail validation.
 			},
@@ -176,6 +212,8 @@ func TestCreateNewEntryAPI(t *testing.T) {
 			request, err := http.NewRequest(http.MethodPost, url, body)
 			assert.NoError(t, err)
 
+			tc.setupAuth(t, request, server.tokenMaker)
+
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
 		})
@@ -183,25 +221,40 @@ func TestCreateNewEntryAPI(t *testing.T) {
 }
 
 func TestListAccountEntriesAPI(t *testing.T) {
-	entry := randomEntry()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
+	entry := randomEntry(account.ID)
 
+	type Query struct {
+		pageID    int
+		pageSize  int
+		AccountID int64
+	}
 	testCases := []struct {
 		name          string
-		AccountID     int64
-		PageID        int64
-		PageSize      int64
+		query         Query
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
-			name:      "OK",
-			AccountID: entry.AccountID,
-			PageID:    1,
-			PageSize:  5,
+			name: "OK",
+			query: Query{
+				pageID:    1,
+				pageSize:  5,
+				AccountID: entry.AccountID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(mock.Anything, entry.AccountID).
-					Times(1).Return(db.Account{}, nil) // Mock GetAccount to pass validation
-				store.EXPECT().ListEntries(mock.Anything, db.ListEntriesParams{AccountID: entry.AccountID, Limit: 5, Offset: 0}).
+				// Return a valid account with an owner
+				account := db.Account{ID: entry.AccountID, Owner: user.Username}
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
+					Times(1).Return(account, nil) // Mock GetAccount to return the account and nil error to pass validation
+
+				store.EXPECT().ListEntries(gomock.Any(), db.ListEntriesParams{AccountID: entry.AccountID, Limit: 5, Offset: 0}).
 					Times(1).
 					Return([]db.Entry{entry}, nil)
 			},
@@ -211,14 +264,21 @@ func TestListAccountEntriesAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "InternalError",
-			AccountID: entry.AccountID,
-			PageID:    1,
-			PageSize:  5,
+			name: "InternalError",
+			query: Query{
+				pageID:    1,
+				pageSize:  5,
+				AccountID: entry.AccountID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(mock.Anything, entry.AccountID).
-					Times(1).Return(db.Account{}, nil) // Mock GetAccount to pass validation
-				store.EXPECT().ListEntries(mock.Anything, db.ListEntriesParams{AccountID: entry.AccountID, Limit: 5, Offset: 0}).
+				// Return a valid account with an owner
+				account := db.Account{ID: entry.AccountID, Owner: user.Username}
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
+					Times(1).Return(account, nil) // Mock GetAccount to pass validation
+				store.EXPECT().ListEntries(gomock.Any(), db.ListEntriesParams{AccountID: entry.AccountID, Limit: 5, Offset: 0}).
 					Times(1).
 					Return([]db.Entry{}, sql.ErrConnDone)
 			},
@@ -227,12 +287,17 @@ func TestListAccountEntriesAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "NotFound",
-			AccountID: entry.AccountID,
-			PageID:    1,
-			PageSize:  5,
+			name: "NotFound",
+			query: Query{
+				pageID:    1,
+				pageSize:  5,
+				AccountID: entry.AccountID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(mock.Anything, entry.AccountID).
+				store.EXPECT().GetAccount(gomock.Any(), entry.AccountID).
 					Times(1).
 					Return(db.Account{}, pgx.ErrNoRows)
 			},
@@ -241,10 +306,15 @@ func TestListAccountEntriesAPI(t *testing.T) {
 			},
 		},
 		{
-			name:      "BadRequest",
-			AccountID: 0,
-			PageID:    0,
-			PageSize:  0,
+			name: "BadRequest",
+			query: Query{
+				pageID:    0,
+				pageSize:  0,
+				AccountID: 0,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				// No call is expected because the request should fail validation.
 			},
@@ -267,9 +337,18 @@ func TestListAccountEntriesAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/entries/?account_id=%d&page_id=%d&page_size=%d", tc.AccountID, tc.PageID, tc.PageSize)
+			url := "/entries/"
 			request, err := http.NewRequest(http.MethodGet, url, nil)
-			assert.NoError(t, err)
+			require.NoError(t, err)
+
+			q := request.URL.Query()
+			q.Add("account_id", fmt.Sprintf("%d", tc.query.AccountID))
+			q.Add("page_id", fmt.Sprintf("%d", tc.query.pageID))
+			q.Add("page_size", fmt.Sprintf("%d", tc.query.pageSize))
+			request.URL.RawQuery = q.Encode()
+			//url := fmt.Sprintf("/entries/?account_id=%d&page_id=%d&page_size=%d", tc.AccountID, tc.PageID, tc.PageSize)
+
+			tc.setupAuth(t, request, server.tokenMaker)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -277,10 +356,10 @@ func TestListAccountEntriesAPI(t *testing.T) {
 	}
 }
 
-func randomEntry() db.Entry {
+func randomEntry(accountID int64) db.Entry {
 	return db.Entry{
 		ID:        util.RandomInt(1, 1000),
-		AccountID: util.RandomInt(1, 1000),
+		AccountID: accountID,
 		Amount:    util.RandomMoney(),
 	}
 }

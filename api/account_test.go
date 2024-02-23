@@ -270,7 +270,6 @@ func TestCreateAccountAPI(t *testing.T) {
 
 func TestListAccountsAPI(t *testing.T) {
 	user, _ := randomUser(t)
-	//account := randomAccount(user.Username)
 
 	n := 5
 	accounts := make([]db.Account, n)
@@ -303,7 +302,7 @@ func TestListAccountsAPI(t *testing.T) {
 				arg := db.ListAccountsParams{
 					Owner:  user.Username,
 					Limit:  int64(n),
-					Offset: 5,
+					Offset: 0,
 				}
 
 				store.EXPECT().
@@ -403,7 +402,7 @@ func TestListAccountsAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := "/accounts"
+			url := "/accounts/"
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 

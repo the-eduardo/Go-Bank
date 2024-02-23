@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	mockdb "github.com/the-eduardo/Go-Bank/db/mock"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
@@ -22,19 +21,25 @@ import (
 )
 
 func TestGetTransferAPI(t *testing.T) {
-	transfer := randomTransfer()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
+	transfer := randomTransfer(account.ID)
 
 	testCases := []struct {
 		name          string
 		transferID    int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:       "OK",
 			transferID: transfer.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetTransferById(mock.Anything, transfer.ID).Times(1).Return(transfer, nil)
+				store.EXPECT().GetTransferById(gomock.Any(), transfer.ID).Times(1).Return(transfer, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				// check the response
@@ -45,8 +50,11 @@ func TestGetTransferAPI(t *testing.T) {
 		{
 			name:       "NotFound",
 			transferID: transfer.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetTransferById(mock.Anything, transfer.ID).
+				store.EXPECT().GetTransferById(gomock.Any(), transfer.ID).
 					Times(1).
 					Return(db.Transfer{}, pgx.ErrNoRows)
 			},
@@ -57,8 +65,11 @@ func TestGetTransferAPI(t *testing.T) {
 		{
 			name:       "InternalError",
 			transferID: transfer.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetTransferById(mock.Anything, transfer.ID).
+				store.EXPECT().GetTransferById(gomock.Any(), transfer.ID).
 					Times(1).
 					Return(db.Transfer{}, sql.ErrConnDone)
 			},
@@ -69,6 +80,9 @@ func TestGetTransferAPI(t *testing.T) {
 		{
 			name:       "InvalidID",
 			transferID: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				// No call is expected because the request should fail validation.
 			},
@@ -94,6 +108,8 @@ func TestGetTransferAPI(t *testing.T) {
 			url := fmt.Sprintf("/transfers/%d", tc.transferID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			assert.NoError(t, err)
+
+			tc.setupAuth(t, request, server.tokenMaker)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
@@ -374,11 +390,11 @@ func TestTransferAPI(t *testing.T) {
 	}
 }
 
-func randomTransfer() db.Transfer {
+func randomTransfer(fromAccount int64) db.Transfer {
 	return db.Transfer{
 		ID:            util.RandomInt(1, 1000),
-		ToAccountID:   util.RandomInt(501, 1000),
-		FromAccountID: util.RandomInt(1, 500),
+		ToAccountID:   util.RandomInt(1, 500),
+		FromAccountID: fromAccount,
 		Amount:        util.RandomMoney(),
 	}
 }

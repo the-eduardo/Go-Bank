@@ -29,7 +29,9 @@ server:
 	go run main.go
 
 mock:
+	mockgen -destination db/mock/store.go github.com/the-eduardo/Go-Bank/db/sqlc Store
+# mockery is deprecated, use mock instead
+mockery:
 	mockery --config=.mockery.yaml
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
-
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery

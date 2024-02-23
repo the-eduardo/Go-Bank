@@ -7,32 +7,32 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/token"
 	"net/http"
 )
 
 // accountValidator checks if the account exists
-func accountValidator(server *Server, ctx *gin.Context, id int64, currency string, verifyCurrency bool) bool {
+func accountValidator(server *Server, ctx *gin.Context, id int64, currency string, verifyCurrency bool) (db.Account, bool) {
 	account, err := server.store.GetAccount(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			return account, false
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return account, false
 	}
 	if verifyCurrency {
 		if account.Currency != currency {
 			err = fmt.Errorf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency)
 			ctx.JSON(http.StatusBadRequest, errorResponse(err))
-			return false
+			return account, false
 		}
 	}
-	return true
+	return account, true
 }
 
 type CreateAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
@@ -42,8 +42,9 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -78,8 +79,15 @@ func (server *Server) deleteAccountRequest(ctx *gin.Context) {
 		return
 	}
 	// Check if the account exists
-	if !accountValidator(server, ctx, req.ID, "", false) {
+	account, valid := accountValidator(server, ctx, req.ID, "", false)
+	if !valid {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
+		return
+	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
@@ -111,6 +119,12 @@ func (server *Server) getAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err = errors.New("account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 	ctx.JSON(http.StatusOK, account)
 }
 
@@ -125,7 +139,10 @@ func (server *Server) listAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	arg := db.ListAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}

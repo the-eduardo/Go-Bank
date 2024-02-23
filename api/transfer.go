@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/token"
 	"net/http"
 )
 
@@ -23,12 +24,19 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 	}
 
 	// Check if the accounts exist and if the currency matches
-	if !accountValidator(server, ctx, req.FromAccountID, req.Currency, true) {
-		//ctx.JSON(http.StatusNotFound, errorResponse(errors.New("from account not found")))
+	fromAccount, valid := accountValidator(server, ctx, req.FromAccountID, req.Currency, true)
+	if !valid {
 		return
 	}
-	if !accountValidator(server, ctx, req.ToAccountID, req.Currency, true) {
-		//ctx.JSON(http.StatusNotFound, errorResponse(errors.New("to account not found")))
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if fromAccount.Owner != authPayload.Username {
+		err := errors.New("from account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	_, valid = accountValidator(server, ctx, req.ToAccountID, req.Currency, true)
+	if !valid {
 		return
 	}
 
@@ -81,8 +89,15 @@ func (server *Server) listTransfers(ctx *gin.Context) {
 	}
 
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.FromAccountID, "", false) {
+	account, valid := accountValidator(server, ctx, req.FromAccountID, "", false)
+	if !valid {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
+		return
+	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 

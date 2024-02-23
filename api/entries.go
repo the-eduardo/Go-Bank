@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/token"
 	"net/http"
 )
 
@@ -20,8 +21,15 @@ func (server *Server) newEntry(ctx *gin.Context) {
 		return
 	}
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.AccountID, "", false) {
-		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("from account not found")))
+	account, valid := accountValidator(server, ctx, req.AccountID, "", false)
+	if !valid {
+		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
+		return
+	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
@@ -83,8 +91,15 @@ func (server *Server) listEntries(ctx *gin.Context) {
 	}
 
 	// Check if the accounts exist
-	if !accountValidator(server, ctx, req.AccountID, "", false) {
+	account, valid := accountValidator(server, ctx, req.AccountID, "", false)
+	if !valid {
 		ctx.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
+		return
+	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account does not belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 

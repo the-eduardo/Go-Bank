@@ -11,8 +11,11 @@ import (
 type Querier interface {
 	// Use AddAccountBalance to add the amount of money as a new entry.
 	AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) (Account, error)
+	// noinspection SqlResolveForFile
 	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
+	// noinspection SqlResolveForFile
 	CreateNewTransfer(ctx context.Context, arg CreateNewTransferParams) (Transfer, error)
+	// noinspection SqlResolveForFile
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAccount(ctx context.Context, id int64) error
 	GetAccount(ctx context.Context, id int64) (Account, error)
@@ -27,6 +30,7 @@ type Querier interface {
 	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	// ListTransfersByAccountId returns a list of transfers for a given account ID
 	ListTransfersByAccountId(ctx context.Context, arg ListTransfersByAccountIdParams) ([]Transfer, error)
+	// noinspection SqlResolveForFile
 	// NewEntry Does not add the amount of money. Use AddAccountBalance instead
 	NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error)
 	UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error)

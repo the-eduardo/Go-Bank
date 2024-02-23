@@ -81,6 +81,7 @@ type NewEntryParams struct {
 	Amount    int64 `json:"amount"`
 }
 
+// noinspection SqlResolveForFile
 // NewEntry Does not add the amount of money. Use AddAccountBalance instead
 func (q *Queries) NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error) {
 	row := q.db.QueryRow(ctx, newEntry, arg.AccountID, arg.Amount)

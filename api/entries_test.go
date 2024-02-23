@@ -10,6 +10,7 @@ import (
 	mockdb "github.com/the-eduardo/Go-Bank/db/mock"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"github.com/the-eduardo/Go-Bank/util"
+	"go.uber.org/mock/gomock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -77,10 +78,13 @@ func TestGetEntryAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			mockStore := mockdb.NewMockStore(t)
-			tc.buildStubs(mockStore)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			server := newTestServer(t, mockStore)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/entries/%d", tc.entryID)
@@ -158,10 +162,13 @@ func TestCreateNewEntryAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			mockStore := mockdb.NewMockStore(t)
-			tc.buildStubs(mockStore)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			server := newTestServer(t, mockStore)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := "/entries"
@@ -251,10 +258,13 @@ func TestListAccountEntriesAPI(t *testing.T) {
 		tc := testCases[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			mockStore := mockdb.NewMockStore(t)
-			tc.buildStubs(mockStore)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			server := newTestServer(t, mockStore)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/entries/?account_id=%d&page_id=%d&page_size=%d", tc.AccountID, tc.PageID, tc.PageSize)

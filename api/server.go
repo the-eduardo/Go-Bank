@@ -44,6 +44,7 @@ func (server *Server) setupRouter() {
 
 	// Add routes for users
 	router.POST("/users", server.createUser)
+	router.POST("/users/login", server.loginUser)
 
 	// Add routes for accounts
 	router.POST("/accounts", server.createAccount)

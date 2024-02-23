@@ -25,6 +25,7 @@ type CreateNewTransferParams struct {
 	Amount        int64 `json:"amount"`
 }
 
+// noinspection SqlResolveForFile
 func (q *Queries) CreateNewTransfer(ctx context.Context, arg CreateNewTransferParams) (Transfer, error) {
 	row := q.db.QueryRow(ctx, createNewTransfer, arg.FromAccountID, arg.ToAccountID, arg.Amount)
 	var i Transfer

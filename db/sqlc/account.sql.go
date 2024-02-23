@@ -51,6 +51,7 @@ type CreateAccountParams struct {
 	Currency string `json:"currency"`
 }
 
+// noinspection SqlResolveForFile
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
 	row := q.db.QueryRow(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
 	var i Account

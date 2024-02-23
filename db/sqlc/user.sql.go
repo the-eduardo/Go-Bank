@@ -10,6 +10,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
+
 INSERT INTO users (
     username,
     hashed_password,
@@ -27,6 +28,7 @@ type CreateUserParams struct {
 	Email          string `json:"email"`
 }
 
+// noinspection SqlResolveForFile
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.Username,

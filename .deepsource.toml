@@ -5,6 +5,10 @@ test_patterns = ["**/*_test.go"]
 exclude_patterns = ["db/migration/**"]
 
 [[analyzers]]
+name = "test-coverage"
+enabled = true
+
+[[analyzers]]
 name = "go"
 
   [analyzers.meta]

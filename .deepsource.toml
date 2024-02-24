@@ -1,0 +1,11 @@
+version = 1
+
+test_patterns = ["**/*_test.go"]
+
+exclude_patterns = ["db/migration/**"]
+
+[[analyzers]]
+name = "go"
+
+  [analyzers.meta]
+  import_root = "github.com/the-eduardo/Go-Bank"

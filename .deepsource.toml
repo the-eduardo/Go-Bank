@@ -13,3 +13,6 @@ name = "go"
 
   [analyzers.meta]
   import_root = "github.com/the-eduardo/Go-Bank"
+
+[[transformers]]
+name = "gofmt"

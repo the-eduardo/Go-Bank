@@ -1,0 +1,14 @@
+# Example of kubernetes Services config
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gobank-api-service
+spec:
+  selector:
+    app.kubernetes.io/name: gobank-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP 

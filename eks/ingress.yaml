@@ -1,0 +1,32 @@
+# Example file, using Ingress to route traffics to different services in Kubernetes 
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gobank-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging 
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "api.gobank.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: gobank-api-services
+            port:
+              number: 80
+  tls:
+    - hosts:
+      - api.gobank.com 
+      secretName: gobank-api-cert

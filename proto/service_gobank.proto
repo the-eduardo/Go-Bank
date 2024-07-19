@@ -5,9 +5,20 @@ package pb;
 import "rpc_create_user.proto";
 import "rpc_login_user.proto";
 import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 
 option go_package = "github.com/the-eduardo/Go-Bank/pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Go Bank";
+    version: "0.1";
+    contact: {
+      name: "Eduardo.";
+      url: "https://github.com/the-eduardo";
+    };
+  };
+};
 
 service GoBank {
   rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {

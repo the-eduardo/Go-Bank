@@ -41,8 +41,14 @@ mock:
 mockery:
 	mockery --config=.mockery.yaml
 
+proto:
+	rm -f pb/*.go
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+    --go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+	proto/*.proto
+
 # For server building only
 dockerbuild:
 	docker run --name gobank-main --network bank-network -p 8080:8080 -e GIN_MODE=release -e DB_SOURCE="postgresql://root:secret@gobank_postgres:5432/gobank_db?sslmode=disable" gobank:latest
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild dbdocs dbschema proto

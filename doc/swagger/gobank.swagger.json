@@ -22,6 +22,8 @@
   "paths": {
     "/v1/create_user": {
       "post": {
+        "summary": "Create New User",
+        "description": "API to create a new user",
         "operationId": "GoBank_CreateUser",
         "responses": {
           "200": {
@@ -54,6 +56,8 @@
     },
     "/v1/login_user": {
       "post": {
+        "summary": "Login User",
+        "description": "API for user login, return a pair of access and refresh tokens",
         "operationId": "GoBank_LoginUser",
         "responses": {
           "200": {

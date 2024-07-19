@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	pgtype "github.com/jackc/pgx/v5/pgtype"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -83,6 +84,21 @@ func (m *MockStore) CreateNewTransfer(arg0 context.Context, arg1 db.CreateNewTra
 func (mr *MockStoreMockRecorder) CreateNewTransfer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNewTransfer", reflect.TypeOf((*MockStore)(nil).CreateNewTransfer), arg0, arg1)
+}
+
+// CreateSession mocks base method.
+func (m *MockStore) CreateSession(arg0 context.Context, arg1 db.CreateSessionParams) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSession", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSession indicates an expected call of CreateSession.
+func (mr *MockStoreMockRecorder) CreateSession(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockStore)(nil).CreateSession), arg0, arg1)
 }
 
 // CreateUser mocks base method.
@@ -157,6 +173,21 @@ func (m *MockStore) GetEntry(arg0 context.Context, arg1 int64) (db.Entry, error)
 func (mr *MockStoreMockRecorder) GetEntry(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEntry", reflect.TypeOf((*MockStore)(nil).GetEntry), arg0, arg1)
+}
+
+// GetSession mocks base method.
+func (m *MockStore) GetSession(arg0 context.Context, arg1 pgtype.UUID) (db.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", arg0, arg1)
+	ret0, _ := ret[0].(db.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockStoreMockRecorder) GetSession(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockStore)(nil).GetSession), arg0, arg1)
 }
 
 // GetTransferById mocks base method.

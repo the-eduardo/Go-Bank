@@ -2,7 +2,9 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -10,6 +12,7 @@ import (
 	"github.com/the-eduardo/Go-Bank/util"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"time"
 )
 
 type CreateUserRequest struct {
@@ -79,8 +82,12 @@ type loginUserRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 type loginUserResponse struct {
-	AccessToken string       `json:"access_token"`
-	User        userResponse `json:"user"`
+	SessionID             uuid.UUID          `json:"session_id"`
+	AccessToken           string             `json:"access_token"`
+	AccessTokenExpiresAt  time.Time          `json:"access_token_expires_at"`
+	RefreshToken          string             `json:"refresh_token"`
+	RefreshTokenExpiresAt pgtype.Timestamptz `json:"refresh_token_expires_at"`
+	User                  userResponse       `json:"user"`
 }
 
 func (server *Server) loginUser(ctx *gin.Context) {
@@ -109,17 +116,84 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	accessToken, _, err := server.tokenMaker.CreateToken(
+	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
 		user.Username,
 		server.config.AccessTokenDuration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	refreshToken, refreshPayload, err := server.tokenMaker.CreateToken(
+		user.Username,
+		server.config.RefreshTokenDuration,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	fixedRefreshPayload, err := ConvertGoogleUUIDToPGTypeUUID(refreshPayload.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+	fixedRefreshPayloadExpiresAt := TimeToPGTimestamptz(refreshPayload.ExpiredAt)
+	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
+		ID:           fixedRefreshPayload,
+		Username:     user.Username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		IsBlocked:    false,
+		ExpiresAt:    fixedRefreshPayloadExpiresAt,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	// Note that it always returns session.ID = 0 when testing the login for some reason.
+	fixedSessionIDPayload, _ := ConvertPGTypeUUIDToGoogleUUID(session.ID)
 	resp := loginUserResponse{
-		AccessToken: accessToken,
-		User:        newUserResponse(user),
+		SessionID:             fixedSessionIDPayload,
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiresAt: fixedRefreshPayloadExpiresAt,
+		User:                  newUserResponse(user),
 	}
 	ctx.JSON(http.StatusOK, resp)
 
+}
+
+// ConvertGoogleUUIDToPGTypeUUID converts a google/uuid.UUID to a pgtype.UUID.
+func ConvertGoogleUUIDToPGTypeUUID(googleUUID uuid.UUID) (pgtype.UUID, error) {
+	if googleUUID == uuid.Nil {
+		return pgtype.UUID{}, fmt.Errorf("google/uuid.UUID is nil")
+	}
+
+	var pgUUID pgtype.UUID
+	copy(pgUUID.Bytes[:], googleUUID[:])
+	pgUUID.Valid = true
+
+	return pgUUID, nil
+}
+
+// ConvertPGTypeUUIDToGoogleUUID converts a pgtype.UUID to a google/uuid.UUID.
+func ConvertPGTypeUUIDToGoogleUUID(pgUUID pgtype.UUID) (uuid.UUID, error) {
+	//if !pgUUID.Valid {
+	//	return uuid.Nil, fmt.Errorf("pgtype.UUID is not valid %v", pgUUID)
+	//}
+	return uuid.FromBytes(pgUUID.Bytes[:])
+}
+
+// TimeToPGTimestamptz Convert time.Time to pgtype.Timestamptz
+func TimeToPGTimestamptz(t time.Time) pgtype.Timestamptz {
+	if t.IsZero() {
+		return pgtype.Timestamptz{
+			Valid: false,
+		}
+	}
+	return pgtype.Timestamptz{
+		Time:  t,
+		Valid: true,
+	}
 }

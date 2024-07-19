@@ -48,12 +48,13 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		return nil, status.Errorf(codes.Internal, "cannot convert refresh payload")
 	}
 	fixedRefreshPayloadExpiresAt := api.TimeToPGTimestamptz(refreshPayload.ExpiredAt)
+	mtdt := server.extractMetadata(ctx)
 	_, err = server.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           fixedRefreshPayload,
 		Username:     user.Username,
 		RefreshToken: refreshToken,
-		UserAgent:    "",
-		ClientIp:     "",
+		UserAgent:    mtdt.UserAgent,
+		ClientIp:     mtdt.ClientIP,
 		IsBlocked:    false,
 		ExpiresAt:    fixedRefreshPayloadExpiresAt,
 	})

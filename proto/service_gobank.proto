@@ -3,6 +3,7 @@ syntax = "proto3";
 package pb;
 
 import "rpc_create_user.proto";
+import "rpc_update_user.proto";
 import "rpc_login_user.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
@@ -29,6 +30,16 @@ service GoBank {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       description: "API to create a new user";
       summary: "Create New User";
+    };
+  }
+  rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      patch: "/v1/update_user"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "API to update an user";
+      summary: "Update User";
     };
   }
   rpc LoginUser (LoginUserRequest) returns (LoginUserResponse) {

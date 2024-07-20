@@ -39,6 +39,7 @@ type Querier interface {
 	// NewEntry Does not add the amount of money. Use AddAccountBalance instead
 	NewEntry(ctx context.Context, arg NewEntryParams) (Entry, error)
 	UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

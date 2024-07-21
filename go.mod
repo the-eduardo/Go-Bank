@@ -9,10 +9,13 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/o1egl/paseto/v2 v2.1.1
+	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.25.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d
 	google.golang.org/grpc v1.65.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
 	google.golang.org/protobuf v1.34.2
@@ -38,6 +41,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -61,8 +65,6 @@ require (
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

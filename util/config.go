@@ -7,6 +7,7 @@ import (
 
 // Config holds all the configuration for the application using Viper.
 type Config struct {
+	Environment          string        `mapstructure:"ENVIRONMENT"`
 	DBSource             string        `mapstructure:"DB_SOURCE"`
 	HTTPServerAddress    string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	GRPCServerAddress    string        `mapstructure:"GRPC_SERVER_ADDRESS"`

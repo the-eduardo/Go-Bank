@@ -3,7 +3,6 @@ package gapi
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
@@ -17,8 +16,15 @@ import (
 )
 
 func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+	authPayload, err := server.autorizeUser(ctx)
+	if err != nil {
+		return nil, unauthenticatedError(err)
+	}
 	if violations := validateUpdateUserRequest(req); violations != nil {
 		return nil, invalidArgumentError(violations)
+	}
+	if authPayload.Username != req.GetUsername() {
+		return nil, status.Errorf(codes.PermissionDenied, "cannot update other users")
 	}
 
 	arg := db.UpdateUserParams{
@@ -68,26 +74,22 @@ func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 }
 
 func validateUpdateUserRequest(req *pb.UpdateUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
-	fmt.Println("---------- validateUpdateUserRequest", req)
 	if err := val.ValidateUsername(req.GetUsername()); err != nil {
 		violations = append(violations, fieldViolation("username", err))
 	}
 	if req.GetFullName() != "" {
 		if err := val.ValidateFullName(req.GetFullName()); err != nil {
 			violations = append(violations, fieldViolation("full_name", err))
-			fmt.Println("---------- Invalid Full Name: ", req.GetFullName())
 		}
 	}
 	if req.GetPassword() != "" {
 		if err := val.ValidatePassword(req.GetPassword()); err != nil {
 			violations = append(violations, fieldViolation("password", err))
-			fmt.Println("---------- Invalid Password: ", req.GetPassword())
 		}
 	}
 	if req.GetEmail() != "" {
 		if err := val.ValidateEmail(req.GetEmail()); err != nil {
 			violations = append(violations, fieldViolation("email", err))
-			fmt.Println("---------- Invalid Email: ", req.GetEmail())
 		}
 	}
 	return violations

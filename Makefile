@@ -56,4 +56,7 @@ evans:
 dockerbuild:
 	docker run --name gobank-main --network bank-network -p 8080:8080 -e GIN_MODE=release -e DB_SOURCE="postgresql://root:secret@gobank_postgres:5432/gobank_db?sslmode=disable" gobank:latest
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild dbdocs dbschema proto evans
+redis:
+	docker run --name gobank_redis --network bank-network -p 6379:6379 -d redis:7.4-rc2-alpine
+
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild dbdocs dbschema proto evans redis

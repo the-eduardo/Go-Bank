@@ -3,14 +3,17 @@ package gapi
 import (
 	"context"
 	"errors"
+	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgconn"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"github.com/the-eduardo/Go-Bank/pb"
 	"github.com/the-eduardo/Go-Bank/util"
 	"github.com/the-eduardo/Go-Bank/val"
+	"github.com/the-eduardo/Go-Bank/worker"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
 
 func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
@@ -41,6 +44,20 @@ func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 		}
 		return nil, status.Errorf(codes.Internal, "failed to create user: %s", err)
 
+	}
+	// use a single DB transaction
+	taskPayload := &worker.PayloadSendVerifyEmail{
+		Username: user.Username,
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(7),
+		asynq.ProcessIn(3 * time.Second),
+		asynq.Timeout(10 * time.Second),
+		asynq.Queue(worker.QueueEmail),
+	}
+	err = server.taskDistributor.DistributeTaskSendVerifyEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to distribute task: %s", err)
 	}
 	resp := &pb.CreateUserResponse{
 		User: convertUser(user),

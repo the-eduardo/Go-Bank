@@ -21,22 +21,27 @@ migratedown:
 migratedown1:
 	migrate -path db/migration -database "$(DB_URL)" -verbose down 1
 
+new_migration:
+	migrate create -ext sql -dir db/migration -seq $(name)
+
 dbdocs:
 	dbdocs build .\doc\db.dbml
+
 dbschema:
-	dbml2sql $(DB_URL)--postgres -o doc/gobankschema.sql doc/db.dbml
+	dbml2sql --postgres -o doc/gobankschema.sql doc/db.dbml
 
 sqlc:
 	sqlc generate
 
 test:
-	go test -v -cover ./...
+	go test -v -cover -short ./...
 
 server:
 	go run main.go
 
 mock:
 	mockgen -destination db/mock/store.go github.com/the-eduardo/Go-Bank/db/sqlc Store
+	mockgen -package mockwk -destination worker/mock/distributor.go github.com/the-eduardo/Go-Bank/worker TaskDistributor
 # mockery is deprecated, use mock instead
 mockery:
 	mockery --config=.mockery.yaml
@@ -59,4 +64,4 @@ dockerbuild:
 redis:
 	docker run --name gobank_redis --network bank-network -p 6379:6379 -d redis:7.4-rc2-alpine
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild dbdocs dbschema proto evans redis
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock mockery dockerbuild dbdocs dbschema proto evans redis new_migration

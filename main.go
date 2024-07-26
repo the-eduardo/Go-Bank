@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
 	"github.com/the-eduardo/Go-Bank/gapi"
+	"github.com/the-eduardo/Go-Bank/mail"
 	"github.com/the-eduardo/Go-Bank/pb"
 	"github.com/the-eduardo/Go-Bank/util"
 	"github.com/the-eduardo/Go-Bank/worker"
@@ -35,6 +36,9 @@ func main() {
 	if err != nil {
 		log.Fatal().Msgf("cannot load config: %v", err)
 	}
+	if config.EmailSenderName == "" || config.EmailSenderAddress == "" || config.EmailSenderPassword == "" {
+		log.Fatal().Msg("email sender not configured")
+	}
 
 	conn, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
@@ -49,13 +53,14 @@ func main() {
 	}
 	taskDistributor := worker.NewRedisTaskDistributor(redisOtp)
 
-	go runTaskProcessor(redisOtp, store)
+	go runTaskProcessor(config, redisOtp, store)
 	go runGatewayServer(config, store, taskDistributor)
 	runGrpcServer(config, store, taskDistributor)
 }
 
-func runTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) {
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store)
+func runTaskProcessor(config util.Config, redisOpt asynq.RedisClientOpt, store db.Store) {
+	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, mailer)
 	log.Info().Msg("starting task processor")
 	err := taskProcessor.Start()
 	if err != nil {

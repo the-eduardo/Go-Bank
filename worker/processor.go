@@ -5,6 +5,8 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	db "github.com/the-eduardo/Go-Bank/db/sqlc"
+	"github.com/the-eduardo/Go-Bank/mail"
+	"github.com/the-eduardo/Go-Bank/util"
 )
 
 const (
@@ -21,9 +23,11 @@ type TaskProcessor interface {
 type RedisTaskProcessor struct {
 	server *asynq.Server
 	store  db.Store
+	mailer mail.EmailSender
+	config util.Config
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store, mailer mail.EmailSender) TaskProcessor {
 	server := asynq.NewServer(redisOpt, asynq.Config{
 		Concurrency: 10,
 		Queues: map[string]int{
@@ -37,7 +41,16 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskPr
 		}),
 		Logger: NewLogger(),
 	})
-	return &RedisTaskProcessor{server: server, store: store}
+	config, err := util.LoadConfig("..")
+	if err != nil {
+		log.Fatal().Msgf("cannot load config in redis task processor: %v", err)
+	}
+	return &RedisTaskProcessor{
+		server: server,
+		store:  store,
+		mailer: mailer,
+		config: config,
+	}
 }
 
 func (processor *RedisTaskProcessor) Start() error {
